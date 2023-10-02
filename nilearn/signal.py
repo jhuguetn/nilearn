@@ -833,12 +833,12 @@ def _censor_signals(signals, confounds, sample_mask):
     return signals, confounds
 
 
-def _interpolate_volumes(volumes, sample_mask, t_r):
+def _interpolate_volumes(volumes, sample_mask, t_r, extrapolate=False):
     """Interpolate censored volumes in signals/confounds."""
     frame_times = np.arange(volumes.shape[0]) * t_r
     remained_vol = frame_times[sample_mask]
     remained_x = volumes[sample_mask, :]
-    cubic_spline_fitter = CubicSpline(remained_vol, remained_x)
+    cubic_spline_fitter = CubicSpline(remained_vol, remained_x, extrapolate=extrapolate)
     volumes_interpolated = cubic_spline_fitter(frame_times)
     volumes[~sample_mask, :] = volumes_interpolated[~sample_mask, :]
     return volumes

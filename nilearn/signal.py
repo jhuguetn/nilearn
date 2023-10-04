@@ -731,8 +731,10 @@ def clean(
         )
 
     # Interpolation / censoring
+    extrapolate = kwargs.get('extrapolate', False)
     signals, confounds = _handle_scrubbed_volumes(
-        signals, confounds, sample_mask, filter_type, t_r
+        signals, confounds, sample_mask, filter_type, t_r,
+        extrapolate=extrapolate
     )
 
     # Detrend
@@ -810,16 +812,18 @@ def clean(
 
 
 def _handle_scrubbed_volumes(
-    signals, confounds, sample_mask, filter_type, t_r
+    signals, confounds, sample_mask, filter_type, t_r, extrapolate=False
 ):
     """Interpolate or censor scrubbed volumes."""
     if sample_mask is None:
         return signals, confounds
 
     if filter_type == "butterworth":
-        signals = _interpolate_volumes(signals, sample_mask, t_r)
+        signals = _interpolate_volumes(signals, sample_mask, t_r,
+                                       extrapolate)
         if confounds is not None:
-            confounds = _interpolate_volumes(confounds, sample_mask, t_r)
+            confounds = _interpolate_volumes(confounds, sample_mask, t_r,
+                                             extrapolate)
     else:  # Or censor when no filtering, or cosine filter
         signals, confounds = _censor_signals(signals, confounds, sample_mask)
     return signals, confounds
@@ -838,7 +842,8 @@ def _interpolate_volumes(volumes, sample_mask, t_r, extrapolate=False):
     frame_times = np.arange(volumes.shape[0]) * t_r
     remained_vol = frame_times[sample_mask]
     remained_x = volumes[sample_mask, :]
-    cubic_spline_fitter = CubicSpline(remained_vol, remained_x, extrapolate=extrapolate)
+    cubic_spline_fitter = CubicSpline(remained_vol, remained_x,
+                                      extrapolate=extrapolate)
     volumes_interpolated = cubic_spline_fitter(frame_times)
     volumes[~sample_mask, :] = volumes_interpolated[~sample_mask, :]
     return volumes
